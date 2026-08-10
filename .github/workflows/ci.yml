@@ -1,3 +1,13 @@
+# BONUS — CI/CD với GitHub Actions
+#
+# Vì sao cấu trúc thế này:
+# - needs: [test, build]  → deploy chỉ chạy khi cổng chất lượng xanh
+# - if: main + push        → PR không được kéo theo deploy production
+# - ignore test_cp5        → test đó cần URL sống; chạy trong CI tạo vòng tự tham chiếu
+# - ignore test_bonus_cicd → badge tự kiểm tra workflow này, tránh vòng tròn
+# - actions ghim @v4/@v5   → không dùng @main/@latest (hành vi đổi bất ngờ)
+# - secrets.RAILWAY_TOKEN  → token nằm ở GitHub Secrets, không hardcode trong repo
+
 name: CI
 
 on:
@@ -14,14 +24,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Run pytest (skip deploy / self-referential bonus)
+
+      - name: Run pytest (skip live-deploy and self-referential bonus)
         run: >
           pytest tests/
           --ignore=tests/test_cp5.py
@@ -34,6 +48,7 @@ jobs:
     needs: [test]
     steps:
       - uses: actions/checkout@v4
+
       - name: Build Docker image
         run: docker build -t day12-agent:ci .
 
@@ -44,13 +59,14 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
+
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           if [ -z "$RAILWAY_TOKEN" ]; then
-            echo "RAILWAY_TOKEN chưa cấu hình — bỏ qua deploy (CI vẫn xanh)."
+            echo "RAILWAY_TOKEN chưa cấu hình trong GitHub Secrets — bỏ qua deploy (CI vẫn xanh)."
             exit 0
           fi
           npm install -g @railway/cli
-          railway up --service day12-agent
+          railway up --service agent --ci -d -y
