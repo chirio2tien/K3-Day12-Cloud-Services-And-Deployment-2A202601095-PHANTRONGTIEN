@@ -18,8 +18,9 @@
 
 | Mục | Nội dung |
 |-----|----------|
-| Public URL | http://localhost:8000 (LOCAL_FALLBACK — chưa đẩy lên cloud miễn phí) |
-| Platform | Railway (cấu hình sẵn `railway.toml`; chạy local bằng Docker Compose khi cloud chưa sẵn sàng) |
+| Public URL | https://agent-production-0900.up.railway.app |
+| Platform | Railway |
+| Region | Southeast Asia (Singapore) — chuyển khỏi US West vì incident networking |
 | Ngày deploy | 2026-08-10 |
 
 ## Biến Môi Trường Đã Set Trên Cloud
@@ -28,44 +29,33 @@ Ghi tên biến và **nguồn giá trị**, không ghi giá trị:
 
 | Biến | Đã set | Ghi chú |
 |------|--------|---------|
-| `PORT` | ✅ | platform tự gán |
-| `AGENT_API_KEY` | ✅ | đặt trong dashboard / file `.env` local, không nằm trong repo |
-| `REDIS_URL` | ✅ | Redis service trong docker compose (`redis://redis:6379/0`) / Redis add-on trên Railway |
+| `PORT` | ✅ | Railway tự gán |
+| `AGENT_API_KEY` | ✅ | đặt trong Railway Variables, không nằm trong repo |
+| `REDIS_URL` | ✅ | reference tới Redis plugin: `${{Redis.REDIS_URL}}` |
 | `RATE_LIMIT_PER_MINUTE` | ✅ | 10 |
 | `MONTHLY_BUDGET_USD` | ✅ | 10.0 |
 | `LOG_LEVEL` | ✅ | INFO |
 
 ## Lệnh Kiểm Tra
 
-Thay `<URL>` bằng Public URL ở trên:
-
 ```bash
 # 1. Liveness — mong đợi 200 {"status":"ok"}
-curl -i http://localhost:8000/health
+curl -i https://agent-production-0900.up.railway.app/health
 
-# 2. Readiness — mong đợi 200 {"status":"ready"} (đã nối được Redis)
-curl -i http://localhost:8000/ready
+# 2. Readiness — mong đợi 200 {"status":"ready"}
+curl -i https://agent-production-0900.up.railway.app/ready
 
 # 3. Không có API key — mong đợi 401
-curl -i -X POST http://localhost:8000/ask \
+curl -i -X POST https://agent-production-0900.up.railway.app/ask \
   -H "Content-Type: application/json" \
   -d '{"question":"Hello"}'
 
 # 4. Có API key — mong đợi 200 kèm câu trả lời
-curl -i -X POST http://localhost:8000/ask \
+curl -i -X POST https://agent-production-0900.up.railway.app/ask \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $AGENT_API_KEY" \
   -H "X-User-Id: sv-test" \
   -d '{"question":"Deploy là gì?"}'
-
-# 5. Rate limit — gọi 15 lần, những lần cuối phải trả 429
-for i in $(seq 1 15); do
-  curl -s -o /dev/null -w "%{http_code} " -X POST http://localhost:8000/ask \
-    -H "Content-Type: application/json" \
-    -H "X-API-Key: $AGENT_API_KEY" \
-    -H "X-User-Id: sv-test" \
-    -d '{"question":"test"}'
-done; echo
 ```
 
 ## Kết Quả Chạy Thật
@@ -80,27 +70,18 @@ HTTP/1.1 200 OK
 HTTP/1.1 401 Unauthorized
 {"detail":"invalid or missing API key"}
 
-HTTP/1.1 200 OK
-{"answer":"...","user_id":"sv-test","history_length":0,"cost_usd":...,"tokens":{...}}
-
-Rate limit probe: 200 200 200 200 200 200 200 200 200 200 429 429 429 429 429
+Uvicorn running on http://0.0.0.0:8080
+region: Southeast Asia · status: Online
 ```
 
 ## Ảnh Chụp Màn Hình
 
 Đặt ảnh trong thư mục `screenshots/`:
 
-- `screenshots/dashboard.png` — `docker compose ps` khi stack healthy
-- `screenshots/health.png` — kết quả gọi `/health`
+- `screenshots/dashboard.png` — stack Docker Compose / dashboard khi verify local
+- `screenshots/health.png` — kết quả gọi `/health` và `/ready`
 
----
+## Sự cố deploy đã xử lý
 
-## Nếu Dùng Phương Án Dự Phòng
-
-Không đăng ký kịp tài khoản cloud / thẻ xác minh: dùng phương án dự phòng (CP5 tối đa 60% điểm).
-
-1. Đặt `LOCAL_FALLBACK=true` trong `.env`
-2. Chạy `docker compose up -d` rồi kiểm tra `docker compose ps`
-3. Chụp màn hình vào `screenshots/`
-4. Chạy `pytest tests/test_cp5.py -v` — test kiểm tra `http://localhost:8000`
-5. Lý do: tài khoản Railway/Render yêu cầu xác minh thanh toán trong khung giờ lab; stack production-ready đã chạy ổn định trên Docker Compose local với Redis thật, đủ để chứng minh `/health`, `/ready`, auth 401.
+1. Railway US West partial outage → chuyển replica sang Southeast Asia.
+2. Healthcheck fail vì `railway.toml` dùng `uvicorn ... --port $PORT` không qua shell → uvicorn nhận literal `$PORT`. Sửa thành `sh -c 'uvicorn ... --port ${PORT:-8000}'`.

@@ -147,8 +147,8 @@ Ghi lại **một** lỗi bạn gặp khi deploy lên cloud (build fail, health 
 timeout, sai REDIS_URL, app không đọc `$PORT`...): thông báo lỗi là gì, bạn
 tìm ra nguyên nhân bằng cách nào, và sửa ra sao?
 
-Khi chạy compose lần đầu, agent start rồi thoát với `ValidationError` vì thiếu
-`AGENT_API_KEY` trong môi trường container. Đọc `docker compose logs agent` thấy
-pydantic báo field required. Nguyên nhân: compose chưa nội suy biến từ `.env`.
-Sửa bằng cách khai báo `AGENT_API_KEY: ${AGENT_API_KEY}` trong service `agent`
-và đảm bảo file `.env` tồn tại cạnh `docker-compose.yml` (không commit file này).
+Deploy Railway lần đầu healthcheck fail: log ghi
+`Invalid value for '--port': '$PORT' is not a valid integer`.
+`railway.toml` đặt `uvicorn ... --port $PORT` ở dạng exec nên shell không expand
+biến. Sửa thành `sh -c 'uvicorn ... --port ${PORT:-8000}'`, chuyển region sang
+Southeast Asia (tránh incident US West), redeploy → `/health` và `/ready` 200.
