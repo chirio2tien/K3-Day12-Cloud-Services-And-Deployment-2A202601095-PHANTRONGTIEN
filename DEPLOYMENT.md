@@ -12,7 +12,7 @@
 |-----|----------|
 | Họ và tên | Phan Trọng Tiến |
 | Mã học viên | 2A202601095 |
-| Repo | https://github.com/chirio2tien/K3-Day12-Cloud-Services-And-Deployment-2A202601095-PHANTRONGTIEN |
+| Repo | https://github.com/chirio2tien/DAY12-2A202601095-PhanTrongTien |
 
 ## Service
 
