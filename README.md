@@ -1,7 +1,11 @@
 # K3 — Ngày 12: Hạ Tầng Cloud & Deployment (9h00–13h00)
 
+[![CI](https://github.com/chirio2tien/K3-Day12-Cloud-Services-And-Deployment-2A202601095-PHANTRONGTIEN/actions/workflows/ci.yml/badge.svg)](https://github.com/chirio2tien/K3-Day12-Cloud-Services-And-Deployment-2A202601095-PHANTRONGTIEN/actions/workflows/ci.yml)
+
 Đưa một AI agent từ `localhost:8000` lên một địa chỉ công khai mà người khác
 gọi được, có bảo mật, có giới hạn chi phí, và không sập khi bạn deploy bản mới.
+
+**Học viên:** Phan Trọng Tiến · **Mã HV:** 2A202601095 · **Repo:** [K3-Day12-Cloud-Services-And-Deployment-2A202601095-PHANTRONGTIEN](https://github.com/chirio2tien/K3-Day12-Cloud-Services-And-Deployment-2A202601095-PHANTRONGTIEN)
 
 ---
 
